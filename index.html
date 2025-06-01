@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<!--
+  MANTRA Vanity Address Generator
+  
+  A modern, secure vanity address generator for the MANTRA blockchain.
+  This application combines:
+  - Rust/WebAssembly backend for high-performance cryptographic operations
+  - Clean, responsive frontend with real-time feedback
+  - Position-based pattern matching (Prefix, Suffix, Anywhere)
+  - Full compatibility with standard Cosmos wallets
+  
+  Features:
+  - BIP39 mnemonic generation
+  - BIP32/BIP44 HD derivation 
+  - secp256k1 elliptic curve cryptography
+  - bech32 address encoding
+  - Real-time progress tracking
+  - Accessibility support
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MANTRA Vanity Address Generator</title>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success-color: #16a34a;
+      --error-color: #dc2626;
+      --warning-color: #d97706;
+      --background: #f8fafc;
+      --surface: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --border-radius: 8px;
+      --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      background-color: var(--background);
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--border-radius);
+      padding: 2rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      margin: 0 0 1.5rem 0;
+      color: var(--text-primary);
+      font-size: 2rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid var(--border);
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+    }
+
+    .button {
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .button:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
+
+    .button:disabled {
+      background-color: var(--text-secondary);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: var(--border-radius);
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .status.info {
+      background-color: rgb(59 130 246 / 0.1);
+      color: var(--primary-color);
+      border: 1px solid rgb(59 130 246 / 0.2);
+    }
+
+    .status.success {
+      background-color: rgb(34 197 94 / 0.1);
+      color: var(--success-color);
+      border: 1px solid rgb(34 197 94 / 0.2);
+    }
+
+    .status.error {
+      background-color: rgb(239 68 68 / 0.1);
+      color: var(--error-color);
+      border: 1px solid rgb(239 68 68 / 0.2);
+    }
+
+    .results {
+      display: none;
+      margin-top: 1.5rem;
+    }
+
+    .results.show {
+      display: block;
+    }
+
+    .result-item {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background-color: var(--background);
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border);
+    }
+
+    .result-label {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .result-value {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 0.9rem;
+      padding: 0.75rem;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--border-radius);
+      word-break: break-all;
+      position: relative;
+    }
+
+    .copy-button {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .copy-button:hover {
+      opacity: 1;
+    }
+
+    .help-text {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .radio-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border: 2px solid var(--border);
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .radio-option:hover {
+      border-color: var(--primary-color);
+      background-color: rgb(37 99 235 / 0.05);
+    }
+
+    .radio-option input[type="radio"] {
+      margin: 0;
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label {
+      color: var(--primary-color);
+    }
+
+    .radio-option:has(input:checked) {
+      border-color: var(--primary-color);
+      background-color: rgb(37 99 235 / 0.1);
+    }
+
+    .radio-label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      flex-grow: 1;
+    }
+
+    .radio-label strong {
+      font-weight: 600;
+    }
+
+    .radio-label small {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-weight: normal;
+    }
+
+    .difficulty-badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 0.5rem;
+    }
+
+    .difficulty-easy {
+      background-color: #10b981;
+      color: white;
+    }
+
+    .difficulty-medium {
+      background-color: #f59e0b;
+      color: white;
+    }
+
+    .difficulty-hard {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background-color: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background-color: var(--primary-color);
+      border-radius: 2px;
+      animation: progress-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes progress-pulse {
+      0%, 100% { transform: translateX(-100%); }
+      50% { transform: translateX(100%); }
+    }
+
+    .warning {
+      background-color: rgb(251 191 36 / 0.1);
+      color: var(--warning-color);
+      border: 1px solid rgb(251 191 36 / 0.2);
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 0.75rem;
+      background-color: var(--background);
+      border-radius: var(--border-radius);
+      border: 1px solid var(--border);
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎯 MANTRA Vanity Generator</h1>
+    
+    <div class="warning">
+      <strong>⚠️ Security Notice:</strong> This tool generates addresses locally in your browser. 
+      Never share your mnemonic phrase with anyone. Store it securely offline.
+    </div>
+
+    <form id="vanityForm">
+      <div class="form-group">
+        <label for="targetInput">Target Pattern:</label>
+        <input 
+          id="targetInput" 
+          type="text" 
+          placeholder="e.g., fud, 888, love" 
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="help-text">
+          Enter a substring to search for in the address. Valid characters: qpzry9x8gf2tvdw0s3jn54khce6mua7l and "1"
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Position in Address:</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="position" value="anywhere" checked>
+            <span class="radio-label">
+              <span>
+                <strong>Anywhere</strong>
+                <span class="difficulty-badge difficulty-easy">Easy</span>
+              </span>
+              <small>Pattern can appear anywhere in the address</small>
+            </span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="position" value="prefix">
+            <span class="radio-label">
+              <span>
+                <strong>Prefix</strong>
+                <span class="difficulty-badge difficulty-medium">Medium</span>
+              </span>
+              <small>Pattern appears right after "mantra1"</small>
+            </span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="position" value="suffix">
+            <span class="radio-label">
+              <span>
+                <strong>Suffix</strong>
+                <span class="difficulty-badge difficulty-hard">Hard</span>
+              </span>
+              <small>Pattern appears at the end of the address</small>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="help-text">
+          <strong>Examples:</strong>
+          <div style="margin-top: 0.5rem;">
+            <div><strong>Anywhere:</strong> mantra1xyz<span style="color: var(--primary-color);">abc</span>def123 or mantra1def<span style="color: var(--primary-color);">abc</span>xyz789</div>
+            <div><strong>Prefix:</strong> mantra1<span style="color: var(--primary-color);">abc</span>def123xyz789</div>
+            <div><strong>Suffix:</strong> mantra1xyz789def<span style="color: var(--primary-color);">abc</span></div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="button" id="generateButton">
+        🎲 Generate Vanity Address
+      </button>
+    </form>
+
+    <div id="status" class="status" style="display: none;"></div>
+
+    <div id="results" class="results">
+      <h3>🎉 Success!</h3>
+      
+      <div class="stats" id="stats">
+        <div class="stat-item">
+          <div class="stat-value" id="attemptsValue">0</div>
+          <div class="stat-label">Attempts</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="durationValue">0s</div>
+          <div class="stat-label">Duration</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="rateValue">0</div>
+          <div class="stat-label">Rate/sec</div>
+        </div>
+      </div>
+
+      <div class="result-item">
+        <span class="result-label">📧 Address:</span>
+        <div class="result-value" id="addressValue">
+          <button class="copy-button" onclick="copyToClipboard('addressValue')">Copy</button>
+        </div>
+      </div>
+
+      <div class="result-item">
+        <span class="result-label">🔑 Mnemonic Phrase:</span>
+        <div class="result-value" id="mnemonicValue">
+          <button class="copy-button" onclick="copyToClipboard('mnemonicValue')">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+  
+  <script>
+    // Global utility function for copying to clipboard
+    async function copyToClipboard(elementId) {
+      const element = document.getElementById(elementId);
+      const text = element.textContent.replace('Copy', '').trim();
+      
+      try {
+        await navigator.clipboard.writeText(text);
+        const button = element.querySelector('.copy-button');
+        const originalText = button.textContent;
+        button.textContent = '✓';
+        button.style.backgroundColor = 'var(--success-color)';
+        
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.backgroundColor = 'var(--primary-color)';
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy text: ', err);
+        alert('Failed to copy to clipboard');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+[package]
+name = "vanity_wasm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.100"
+rand = { version = "0.8", default-features = false, features = ["getrandom"] }
+bip39 = "2.0"
+k256 = { version = "0.13", features = ["ecdsa", "arithmetic"] }
+sha2 = "0.10"
+ripemd = "0.1"
+bech32 = "0.9"
+getrandom = { version = "0.2", features = ["js"] }
+console_error_panic_hook = { version = "0.1", optional = true }
+# HD Wallet derivation dependencies  
+hmac = "0.12"
+pbkdf2 = "0.12"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "console",
+]
+
+[features]
+default = ["console_error_panic_hook"]
+

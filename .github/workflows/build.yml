@@ -1,0 +1,70 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+        
+    - name: Install wasm-pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      
+    - name: Build WebAssembly module
+      run: |
+        cd wasm-module
+        wasm-pack build --target web --out-dir ../
+        
+    - name: Verify build artifacts
+      run: |
+        ls -la vanity_wasm*
+        echo "✅ Build completed successfully"
+        
+    - name: Setup Python for testing
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Test server startup
+      run: |
+        timeout 10s python3 -m http.server 8000 &
+        sleep 2
+        curl -f http://localhost:8000/ > /dev/null
+        echo "✅ Server test passed"
+        
+  security-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Security audit
+      run: |
+        echo "🔒 Running security checks..."
+        # Check for any hardcoded secrets
+        if grep -r "private.*key\|secret\|password" --include="*.js" --include="*.rs" --include="*.html" .; then
+          echo "❌ Potential security issue found"
+          exit 1
+        fi
+        echo "✅ Security check passed"
+        
+    - name: Verify no external requests
+      run: |
+        echo "🌐 Checking for external requests..."
+        if grep -r "fetch\|XMLHttpRequest\|axios" --include="*.js" --include="*.html" .; then
+          echo "⚠️  Found potential external requests - manual review required"
+        fi
+        echo "✅ External request check completed"

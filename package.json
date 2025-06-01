@@ -1,0 +1,38 @@
+{
+  "name": "mantra-vanity-generator",
+  "version": "1.0.0",
+  "description": "A modern, high-performance vanity address generator for the MANTRA blockchain. This application combines a Rust/WebAssembly backend for cryptographic operations with a clean, responsive frontend for an optimal user experience.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "build": "./cloudflare-build.sh",
+    "clean": "rm -f vanity_wasm* && rm -rf dist temp-wasm",
+    "deploy": "npm run build && mkdir -p dist && cp index.html main.js vanity_wasm* _headers _redirects dist/",
+    "deploy:preview": "npm run deploy && cd dist && python3 -m http.server 8080",
+    "verify": "./verify-deployment.sh"
+  },
+  "keywords": [
+    "blockchain",
+    "vanity-address",
+    "mantra",
+    "cosmos",
+    "webassembly",
+    "rust",
+    "cryptography",
+    "bip32",
+    "bip39",
+    "cryptocurrency",
+    "wallet"
+  ],
+  "author": "MANTRA Vanity Generator Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/mantra-vanity-generator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/mantra-vanity-generator/issues"
+  },
+  "homepage": "https://github.com/your-username/mantra-vanity-generator#readme",
+  "type": "module"
+}
