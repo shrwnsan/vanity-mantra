@@ -5,10 +5,10 @@
   "main": "index.html",
   "scripts": {
     "dev": "python3 -m http.server 8000",
-    "build": "./cloudflare-build.sh",
-    "clean": "rm -f vanity_wasm* && rm -rf dist temp-wasm",
-    "deploy": "npm run build && mkdir -p dist && cp index.html main.js vanity_wasm* _headers _redirects dist/",
-    "deploy:preview": "npm run deploy && cd dist && python3 -m http.server 8080",
+    "build": "./build.sh",
+    "clean": "rm -f vanity_wasm* && rm -rf _site",
+    "deploy": "npm run build && mkdir -p _site && cp index.html main.js vanity_wasm* _site/",
+    "deploy:preview": "npm run deploy && cd _site && python3 -m http.server 8080",
     "verify": "./verify-deployment.sh"
   },
   "keywords": [
@@ -22,17 +22,20 @@
     "bip32",
     "bip39",
     "cryptocurrency",
-    "wallet"
+    "address-generation",
+    "github-pages"
   ],
-  "author": "MANTRA Vanity Generator Contributors",
+  "author": "MANTRA Vanity Generator Team",
   "license": "MIT",
+  "homepage": "https://github.com/mantramatt/vanity-mantra",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/mantra-vanity-generator.git"
+    "url": "https://github.com/mantramatt/vanity-mantra.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/mantra-vanity-generator/issues"
+    "url": "https://github.com/mantramatt/vanity-mantra/issues"
   },
-  "homepage": "https://github.com/your-username/mantra-vanity-generator#readme",
-  "type": "module"
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }

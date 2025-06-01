@@ -1,6 +1,6 @@
 #!/bin/bash
-echo "🔍 MANTRA Vanity Generator - Deployment Verification"
-echo "=================================================="
+echo "🔍 MANTRA Vanity Generator - GitHub Pages Deployment Verification"
+echo "============================================================="
 
 # Check required files
 FILES=("index.html" "main.js" "vanity_wasm.js" "vanity_wasm_bg.wasm")
@@ -22,5 +22,5 @@ if [ -f "vanity_wasm_bg.wasm" ]; then
 fi
 
 echo ""
-echo "🚀 Ready for Cloudflare Pages deployment!"
-echo "Run: npm run deploy"
+echo "🚀 Ready for GitHub Pages deployment!"
+echo "Push to main branch to trigger deployment"

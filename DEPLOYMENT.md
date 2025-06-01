@@ -1,8 +1,8 @@
-# Cloudflare Pages Deployment Guide
+# GitHub Pages Deployment Guide
 
 ## 📁 Files to Deploy
 
-For Cloudflare Pages, you only need these frontend files:
+For GitHub Pages, you only need these frontend files:
 
 ### Required Files:
 ```
@@ -18,86 +18,88 @@ vanity_wasm.d.ts         # TypeScript definitions
 vanity_wasm_bg.wasm.d.ts # WASM TypeScript definitions
 ```
 
+The WebAssembly files are automatically generated from the Rust source code in `wasm-module/src/lib.rs`.
+
 ## 🚀 Deployment Methods
 
-### Method 1: Direct Upload (Easiest)
+### Method 1: Automatic GitHub Actions (Recommended)
 
-1. **Prepare deployment files**:
+**Zero configuration required!** Just push to GitHub:
+
+1. **Enable GitHub Pages** in repository settings:
+   - Settings → Pages → Source: Deploy from a branch → Branch: `gh-pages`
+
+2. **Push to main branch**:
    ```bash
-   mkdir deploy
-   cp index.html main.js vanity_wasm* deploy/
+   git add .
+   git commit -m "Deploy to GitHub Pages"
+   git push origin main
    ```
 
-2. **Upload to Cloudflare Pages**:
-   - Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
-   - Pages → Create a project → Upload assets
-   - Drag the `deploy` folder contents
-   - Set project name: `mantra-vanity-generator`
+3. **Automatic deployment** via GitHub Actions workflow
+4. **Access your site** at: `https://your-username.github.io/repository-name/`
 
-### Method 2: GitHub Integration (Recommended)
+### Method 2: Manual Local Build
 
-1. **Push to GitHub** (with proper .gitignore)
-2. **Connect Cloudflare Pages to GitHub**:
-   - Pages → Create a project → Connect to Git
-   - Select your repository
-   - Build settings:
-     - **Framework preset**: None
-     - **Build command**: `./build.sh`
-     - **Build output directory**: `/`
-     - **Root directory**: `/`
-
-### Method 3: Automated Deployment Script
-
-Run this script to create a clean deployment package:
+Test locally before deploying:
 
 ```bash
+# Build the project
+npm run build
+
+# Create deployment package
 npm run deploy
+
+# Test locally  
+npm run deploy:preview
+# Visit: http://localhost:8080
 ```
 
-## 🔧 Configuration
+### Method 3: Direct File Upload
 
-### Custom Domain (Optional)
-- Add your domain in Cloudflare Pages settings
-- SSL is automatically provided
+For other static hosting providers:
 
-### Headers (Optional)
-Create `_headers` file for security:
-```
-/*
-  X-Frame-Options: DENY
-  X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=()
+```bash
+# Prepare deployment files
+mkdir deploy
+cp index.html main.js vanity_wasm* deploy/
 ```
 
-### Redirects (Optional)
-Create `_redirects` file:
-```
-# SPA fallback
-/* /index.html 200
-```
+Upload the `deploy` folder contents to your hosting provider.
+
+## ⚙️ GitHub Configuration
+
+### Repository Settings
+
+1. **Pages Settings**:
+   - Source: Deploy from a branch
+   - Branch: `gh-pages` (auto-created by workflow)
+   - Folder: `/` (root)
+
+2. **Actions Settings**:
+   - Enable GitHub Actions (should be enabled by default)
+   - Allow all actions (or allow specific actions)
+
+### No Manual Configuration Required
+
+- ✅ **Build Settings**: Handled by `.github/workflows/pages.yml`
+- ✅ **Environment Variables**: None needed (client-side only)
+- ✅ **Custom Domain**: Optional (configure in repository settings)
+- ✅ **HTTPS**: Automatically enabled by GitHub
 
 ## 📋 Deployment Checklist
 
-Before deploying to Cloudflare Pages, verify:
+### ✅ Prerequisites
+- [ ] Repository pushed to GitHub
+- [ ] GitHub Pages enabled in repository settings
+- [ ] `.github/workflows/pages.yml` workflow file present
 
 ### ✅ Files Ready for Deployment
 - [ ] `index.html` - Main application interface
 - [ ] `main.js` - Frontend JavaScript logic
 - [ ] `vanity_wasm.js` - WebAssembly JavaScript bindings  
 - [ ] `vanity_wasm_bg.wasm` - Compiled WebAssembly module
-- [ ] `_headers` - Security headers for Cloudflare
-- [ ] `_redirects` - SPA routing configuration
-
-### 🔧 Cloudflare Pages Settings
-
-**Framework preset**: None  
-**Build command**: `./cloudflare-build.sh`  
-**Build output directory**: `/`  
-**Root directory**: `/`  
-
-### 🛠️ Environment Variables (None Required)
-This application runs entirely client-side with no backend dependencies.
+- [ ] `wasm-module/src/lib.rs` - Rust source code
 
 ### 🌐 Post-Deployment Verification
 
@@ -105,43 +107,50 @@ This application runs entirely client-side with no backend dependencies.
 2. **WASM Test**: Check that WebAssembly module loads correctly
 3. **Generation Test**: Generate a test vanity address
 4. **Mobile Test**: Verify responsive design on mobile devices
-5. **Security Test**: Confirm HTTPS is enabled and headers are set
+5. **Performance Test**: Check load times and responsiveness
 
-### 🔒 Security Verification
+### 🔒 Security Features
 
-- [ ] HTTPS enabled automatically
-- [ ] Security headers applied via `_headers` file
-- [ ] No external network requests (check browser dev tools)
-- [ ] CSP (Content Security Policy) allows WASM execution
-- [ ] Private keys never transmitted (client-side only)
+GitHub Pages automatically provides:
+- **HTTPS enforcement** (no mixed content)
+- **Global CDN** distribution
+- **DDoS protection** 
+- **No server-side execution** (static files only)
+- **Client-side only** operation (no data transmission)
 
 ### 📊 Performance Optimization
 
-Cloudflare automatically provides:
-- Global CDN distribution
-- Brotli/Gzip compression  
-- Edge caching
-- HTTP/3 support
+GitHub automatically provides:
+- Global CDN distribution via GitHub's infrastructure
+- Gzip compression for assets
+- Browser caching headers
+- Fast global edge locations
 
 Expected load times:
-- Initial load: ~2-3 seconds (324KB WASM)
-- Subsequent visits: <1 second (cached)
+- Initial load: ~2-3 seconds (WebAssembly compilation)
+- Subsequent visits: <1 second (browser cached)
 
 ### 🚨 Troubleshooting
 
+**GitHub Actions build fails**:
+- Check Actions tab in your repository for error logs
+- Ensure Rust toolchain installs correctly
+- Verify `wasm-pack` installation succeeds
+
 **WASM fails to load**:
-- Check MIME type for `.wasm` files
-- Verify CORS headers allow WASM execution
+- Check browser console for errors
+- Verify HTTPS is enabled (required for SharedArrayBuffer)
+- Test in different browsers (Chrome, Firefox, Safari)
 
-**Build fails**:
-- Ensure Rust toolchain is available
-- Verify `wasm-pack` is installed
-- Check build script permissions
+**Pages not updating**:
+- Check GitHub Actions workflow completed successfully
+- Verify `gh-pages` branch was updated
+- Clear browser cache and try again
 
-**Security errors**:
-- Review CSP headers
-- Verify HTTPS is enabled
-- Check for mixed content warnings
+**Build artifacts missing**:
+- Ensure `wasm-module/src/lib.rs` exists
+- Check Rust compilation succeeds
+- Verify wasm-pack generates expected files
 
 ---
 
@@ -149,19 +158,35 @@ Expected load times:
 
 | Method | Difficulty | Automation | Best For |
 |--------|------------|------------|----------|
-| **Cloudflare + GitHub** | Easy | Full | Production |
-| **Direct Upload** | Easy | Manual | Quick deploy |
-| **Other Static Hosts** | Medium | Varies | Alternative |
+| **GitHub Actions** | Easy | Full | Production |
+| **Manual Build** | Medium | None | Development |
+| **Direct Upload** | Easy | Manual | Other hosts |
 
 ### Quick Deploy Commands
 
 ```bash
-# Build and deploy locally
+# Verify deployment readiness
+npm run verify
+
+# Build locally for testing
+npm run build
+
+# Create local deployment package
 npm run deploy
 
-# Preview deployment
+# Test deployment locally
 npm run deploy:preview
 
-# Clean and rebuild
-npm run clean && npm run build
+# Clean build artifacts
+npm run clean
 ```
+
+### GitHub Actions Workflow
+
+The workflow (`.github/workflows/pages.yml`) automatically:
+1. Installs Rust with WebAssembly target
+2. Installs wasm-pack
+3. Builds the WebAssembly module
+4. Deploys to GitHub Pages
+
+**🎉 Your MANTRA vanity address generator is now live on GitHub Pages!**

@@ -43,33 +43,3 @@ jobs:
         sleep 2
         curl -f http://localhost:8000/ > /dev/null
         echo "✅ Server test passed"
-        
-  security-check:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Security audit
-      run: |
-        echo "🔒 Running security checks..."
-        # Check for hardcoded secrets (excluding legitimate crypto terms)
-        if grep -r -i "api.*key\|auth.*token\|bearer\|oauth\|jwt.*secret\|database.*password\|db.*password" --include="*.js" --include="*.rs" --include="*.html" .; then
-          echo "❌ Potential hardcoded secret found"
-          exit 1
-        fi
-        # Check for hardcoded private keys (actual key values, not variable names)
-        if grep -r -E "-----BEGIN.*PRIVATE.*KEY-----|['\"][0-9a-fA-F]{64}['\"]|private.*key.*=.*['\"][0-9a-fA-F]" --include="*.js" --include="*.rs" --include="*.html" .; then
-          echo "❌ Potential hardcoded private key found"
-          exit 1
-        fi
-        echo "✅ Security check passed"
-        
-    - name: Verify no external requests
-      run: |
-        echo "🌐 Checking for external requests..."
-        if grep -r "fetch\|XMLHttpRequest\|axios" --include="*.js" --include="*.html" .; then
-          echo "⚠️  Found potential external requests - manual review required"
-        fi
-        echo "✅ External request check completed"

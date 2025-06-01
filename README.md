@@ -142,41 +142,40 @@ npm run dev
 
 ## 🚀 Deployment
 
-### Cloudflare Pages (Recommended)
+### GitHub Pages (Recommended)
 
-The easiest way to deploy this application is using Cloudflare Pages:
+The easiest way to deploy this application is using GitHub Pages with automatic deployment:
 
-#### Option 1: GitHub Integration (Recommended)
-1. Push your repository to GitHub
-2. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → Pages
-3. Create a project → Connect to Git
-4. Select your repository and configure:
-   - **Build command**: `./cloudflare-build.sh`
-   - **Build output directory**: `/`
-   - **Root directory**: `/`
+#### Automatic Deployment
+1. **Push your repository to GitHub**
+2. **Enable GitHub Pages** in repository settings:
+   - Go to Settings → Pages
+   - Source: Deploy from a branch
+   - Branch: `gh-pages` (auto-created)
+3. **Push to main branch** - deployment happens automatically via GitHub Actions
+4. **Access your site** at: `https://your-username.github.io/repository-name/`
 
-#### Option 2: Direct Upload
-1. Run the deployment script:
-   ```bash
-   npm run deploy
-   ```
-2. Upload the `dist/` folder contents to Cloudflare Pages
+#### Manual Local Testing
+```bash
+# Build and test locally
+npm run build
+npm run deploy:preview
+# Visit: http://localhost:8080
+```
 
-#### Option 3: Manual Files
-Upload these files to your web server:
-- `index.html`
-- `main.js`
-- `vanity_wasm.js`
-- `vanity_wasm_bg.wasm`
-- `_headers` (optional, for security headers)
-- `_redirects` (optional, for SPA routing)
+#### Required Files
+The deployment automatically includes:
+- `index.html` - Main application interface
+- `main.js` - Frontend JavaScript logic
+- `vanity_wasm.js` - WebAssembly bindings
+- `vanity_wasm_bg.wasm` - Compiled Rust code
 
 ### Other Hosting Providers
 
 This application works on any static hosting service:
-- **Netlify**: Same as Cloudflare Pages
+- **Netlify**: Connect to GitHub for automatic deployment
 - **Vercel**: Deploy with `vercel --prod`
-- **GitHub Pages**: Enable in repository settings
+- **Static hosting**: Upload static files to any web server
 - **AWS S3**: Upload to S3 bucket with static hosting
 
 ### Build Requirements
