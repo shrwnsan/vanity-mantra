@@ -250,6 +250,83 @@ export function derive_address_from_mnemonic(mnemonic_str) {
     }
 }
 
+function getArrayJsValueFromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    const mem = getDataViewMemory0();
+    const result = [];
+    for (let i = ptr; i < ptr + 4 * len; i += 4) {
+        result.push(wasm.__wbindgen_export_2.get(mem.getUint32(i, true)));
+    }
+    wasm.__externref_drop_slice(ptr, len);
+    return result;
+}
+/**
+ * Generate multiple random keypairs in a single WASM call for better performance
+ *
+ * This function generates a batch of random keypairs, which can be more efficient
+ * than calling generate_random_keypair() multiple times from JavaScript.
+ * This is designed to work well with Web Workers for parallelization.
+ *
+ * # Arguments
+ * * `count` - Number of keypairs to generate
+ *
+ * # Returns
+ * * `Vec<Keypair>` - Vector of generated keypairs
+ * @param {number} count
+ * @returns {Keypair[]}
+ */
+export function generate_random_keypairs_batch(count) {
+    const ret = wasm.generate_random_keypairs_batch(count);
+    var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
+ * Generate vanity keypairs in batches for better performance
+ *
+ * This function generates keypairs in batches and checks each one against
+ * the target pattern. It returns the first match found, or None if no
+ * match is found within the batch.
+ *
+ * # Arguments
+ * * `target` - The substring pattern to search for in addresses
+ * * `position` - Where the pattern should appear (Anywhere, Prefix, or Suffix)
+ * * `batch_size` - Number of keypairs to generate and check in this batch
+ *
+ * # Returns
+ * * `Option<Keypair>` - The first matching keypair, or None if no match found
+ * @param {string} target
+ * @param {VanityPosition} position
+ * @param {number} batch_size
+ * @returns {Keypair | undefined}
+ */
+export function generate_vanity_keypair_batch(target, position, batch_size) {
+    const ptr0 = passStringToWasm0(target, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.generate_vanity_keypair_batch(ptr0, len0, position, batch_size);
+    return ret === 0 ? undefined : Keypair.__wrap(ret);
+}
+
+/**
+ * Get optimal batch size for performance
+ *
+ * Returns a recommended batch size for vanity generation based on the target pattern.
+ * Shorter patterns can use larger batch sizes, while longer patterns should use smaller ones.
+ *
+ * # Arguments
+ * * `target_length` - Length of the target pattern
+ *
+ * # Returns
+ * * `u32` - Recommended batch size
+ * @param {number} target_length
+ * @returns {number}
+ */
+export function get_optimal_batch_size(target_length) {
+    const ret = wasm.get_optimal_batch_size(target_length);
+    return ret >>> 0;
+}
+
 /**
  * Position where the vanity string should appear in the address
  * @enum {0 | 1 | 2}
@@ -417,6 +494,10 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_getRandomValues_b8f5dbd5f3995a9e = function() { return handleError(function (arg0, arg1) {
         arg0.getRandomValues(arg1);
     }, arguments) };
+    imports.wbg.__wbg_keypair_new = function(arg0) {
+        const ret = Keypair.__wrap(arg0);
+        return ret;
+    };
     imports.wbg.__wbg_msCrypto_a61aeb35a24c1329 = function(arg0) {
         const ret = arg0.msCrypto;
         return ret;

@@ -300,12 +300,91 @@
       height: 100%;
       background-color: var(--primary-color);
       border-radius: 2px;
-      animation: progress-pulse 1.5s ease-in-out infinite;
+      animation: progress-sweep 2s ease-in-out infinite;
+      transition: width 0.3s ease-in-out;
     }
 
-    @keyframes progress-pulse {
-      0%, 100% { transform: translateX(-100%); }
-      50% { transform: translateX(100%); }
+    .progress-fill.estimated {
+      animation: none;
+      background: linear-gradient(90deg, var(--primary-color) 0%, var(--success-color) 100%);
+    }
+
+    @keyframes progress-sweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Enhanced progress animations */
+    .progress-spinner {
+      display: inline-block;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-dots {
+      display: inline-block;
+      animation: dots 1.5s ease-in-out infinite;
+    }
+
+    @keyframes dots {
+      0%, 20% { opacity: 0; }
+      50% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    .progress-pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .search-animation {
+      display: inline-block;
+      animation: search-bounce 1.5s ease-in-out infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes search-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    .progress-text {
+      animation: text-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes text-glow {
+      0%, 100% { text-shadow: 0 0 5px rgba(37, 99, 235, 0.3); }
+      50% { text-shadow: 0 0 10px rgba(37, 99, 235, 0.6); }
+    }
+
+    /* Button animations during generation */
+    .button.generating {
+      animation: button-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes button-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+      50% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+    }
+
+    /* Stats animation during generation */
+    .stats.active .stat-value {
+      animation: stat-update 0.5s ease-in-out;
+    }
+
+    @keyframes stat-update {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); color: var(--primary-color); }
+      100% { transform: scale(1); }
     }
 
     .warning {
@@ -345,6 +424,36 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
+
+    .feedback {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      border-radius: var(--border-radius);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .feedback.success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success-color);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .feedback.error {
+      background-color: rgba(220, 38, 38, 0.1);
+      color: var(--error-color);
+      border: 1px solid rgba(220, 38, 38, 0.2);
+    }
+
+    .feedback.warning {
+      background-color: rgba(217, 119, 6, 0.1);
+      color: var(--warning-color);
+      border: 1px solid rgba(217, 119, 6, 0.2);
+    }
+
+    .feedback:empty {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -369,6 +478,7 @@
         <div class="help-text">
           Enter a substring to search for in the address. Valid characters: qpzry9x8gf2tvdw0s3jn54khce6mua7l and "1"
         </div>
+        <div id="inputFeedback" class="feedback"></div>
       </div>
 
       <div class="form-group">
@@ -405,6 +515,7 @@
             </span>
           </label>
         </div>
+        <div id="positionFeedback" class="feedback">Pattern can appear anywhere in the address</div>
       </div>
 
       <div class="form-group">
@@ -425,23 +536,24 @@
 
     <div id="status" class="status" style="display: none;"></div>
 
+    <!-- Progress stats shown during generation -->
+    <div class="stats" id="stats" style="display: none;">
+      <div class="stat-item">
+        <div class="stat-value" id="attemptsValue">0</div>
+        <div class="stat-label">Attempts</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="durationValue">0s</div>
+        <div class="stat-label">Duration</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="rateValue">0</div>
+        <div class="stat-label">Rate/sec <br/>(<span id="workerCount">0</span> workers)</div>
+      </div>
+    </div>
+
     <div id="results" class="results">
       <h3>🎉 Success!</h3>
-      
-      <div class="stats" id="stats">
-        <div class="stat-item">
-          <div class="stat-value" id="attemptsValue">0</div>
-          <div class="stat-label">Attempts</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value" id="durationValue">0s</div>
-          <div class="stat-label">Duration</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value" id="rateValue">0</div>
-          <div class="stat-label">Rate/sec</div>
-        </div>
-      </div>
 
       <div class="result-item">
         <span class="result-label">📧 Address:</span>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Comparison: Single vs Parallel</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: #f8fafc;
+        }
+        .container { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            margin-bottom: 20px; 
+        }
+        h1 { color: #1e293b; margin-bottom: 10px; }
+        .system-info { 
+            background: #e0f2fe; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            border-left: 4px solid #0284c7; 
+        }
+        .test-controls { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+            flex-wrap: wrap; 
+        }
+        button { 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: 500; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .btn-secondary:hover { background: #4b5563; }
+        button:disabled { background: #d1d5db; cursor: not-allowed; }
+        
+        .comparison-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 20px; 
+            margin-bottom: 20px; 
+        }
+        .test-result { 
+            background: #f1f5f9; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border: 1px solid #e2e8f0; 
+        }
+        .test-result h3 { margin-top: 0; color: #475569; }
+        .metric { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 8px; 
+            padding: 5px 0; 
+            border-bottom: 1px solid #e2e8f0; 
+        }
+        .metric:last-child { border-bottom: none; }
+        .metric-value { font-weight: 600; }
+        .speedup { 
+            background: #dcfce7; 
+            color: #166534; 
+            padding: 10px; 
+            border-radius: 6px; 
+            text-align: center; 
+            font-weight: 600; 
+            margin-top: 15px; 
+        }
+        #output { 
+            background: #1e293b; 
+            color: #f1f5f9; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: 'Monaco', 'Menlo', monospace; 
+            font-size: 13px; 
+            max-height: 300px; 
+            overflow-y: auto; 
+            white-space: pre-wrap; 
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .progress { 
+            background: #e5e7eb; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            margin: 10px 0; 
+        }
+        .progress-bar { 
+            background: #3b82f6; 
+            height: 8px; 
+            transition: width 0.3s ease; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 MANTRA Vanity Address Generator - Performance Comparison</h1>
+        
+        <div class="system-info">
+            <strong>System Information:</strong><br>
+            CPU Cores: <span id="cpuCores">Detecting...</span><br>
+            Configured Workers: <span id="workerCount">Calculating...</span><br>
+            Browser: <span id="browserInfo">Detecting...</span>
+        </div>
+
+        <div class="test-controls">
+            <button class="btn-primary" onclick="runSingleThreadTest()">🔄 Single-Thread Test</button>
+            <button class="btn-success" onclick="runParallelTest()">⚡ Parallel Test</button>
+            <button class="btn-primary" onclick="runComparison()">📊 Full Comparison</button>
+            <button class="btn-secondary" onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+
+        <div class="comparison-grid">
+            <div class="test-result">
+                <h3>🔄 Single-Threaded Performance</h3>
+                <div class="metric">
+                    <span>Duration:</span>
+                    <span class="metric-value" id="singleTime">-</span>
+                </div>
+                <div class="metric">
+                    <span>Attempts:</span>
+                    <span class="metric-value" id="singleAttempts">-</span>
+                </div>
+                <div class="metric">
+                    <span>Rate:</span>
+                    <span class="metric-value" id="singleRate">-</span>
+                </div>
+                <div class="metric">
+                    <span>Success:</span>
+                    <span class="metric-value" id="singleSuccess">-</span>
+                </div>
+            </div>
+
+            <div class="test-result">
+                <h3>⚡ Parallel Performance</h3>
+                <div class="metric">
+                    <span>Duration:</span>
+                    <span class="metric-value" id="parallelTime">-</span>
+                </div>
+                <div class="metric">
+                    <span>Attempts:</span>
+                    <span class="metric-value" id="parallelAttempts">-</span>
+                </div>
+                <div class="metric">
+                    <span>Rate:</span>
+                    <span class="metric-value" id="parallelRate">-</span>
+                </div>
+                <div class="metric">
+                    <span>Success:</span>
+                    <span class="metric-value" id="parallelSuccess">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="speedup" id="speedupResult" style="display: none;">
+            Performance improvement will be calculated after running both tests
+        </div>
+
+        <div class="progress" style="display: none;" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>📋 Test Log</h3>
+        <div id="output">Ready for performance testing...\n</div>
+    </div>
+
+    <script type="module">
+        import init, { 
+            generate_vanity_keypair_batch, 
+            get_optimal_batch_size,
+            VanityPosition 
+        } from './vanity_wasm.js';
+
+        // System info
+        const cpuCores = navigator.hardwareConcurrency || 4;
+        const workerCount = Math.max(1, cpuCores - 2);
+        
+        document.getElementById('cpuCores').textContent = cpuCores;
+        document.getElementById('workerCount').textContent = workerCount;
+        document.getElementById('browserInfo').textContent = navigator.userAgent.split(' ').slice(-2).join(' ');
+
+        const output = document.getElementById('output');
+        let wasmInitialized = false;
+        let testResults = {
+            single: null,
+            parallel: null
+        };
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : '';
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : '📝';
+            
+            const span = `<span class="${className}">[${timestamp}] ${prefix} ${message}</span>\n`;
+            output.innerHTML += span;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function updateProgress(percent) {
+            const container = document.getElementById('progressContainer');
+            const bar = document.getElementById('progressBar');
+            container.style.display = percent >= 0 ? 'block' : 'none';
+            bar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+        }
+
+        function updateResults(type, data) {
+            testResults[type] = data;
+            
+            document.getElementById(`${type}Time`).textContent = `${data.duration}ms`;
+            document.getElementById(`${type}Attempts`).textContent = data.attempts.toLocaleString();
+            document.getElementById(`${type}Rate`).textContent = `${data.rate}/sec`;
+            document.getElementById(`${type}Success`).textContent = data.success ? '✅ Found' : '❌ Not found';
+
+            // Calculate speedup if both tests completed
+            if (testResults.single && testResults.parallel) {
+                const speedup = (testResults.single.rate / testResults.parallel.rate).toFixed(1);
+                const speedupEl = document.getElementById('speedupResult');
+                speedupEl.style.display = 'block';
+                speedupEl.innerHTML = `🚀 Parallel processing is <strong>${speedup}x faster</strong> than single-threaded!`;
+            }
+        }
+
+        window.clearResults = function() {
+            output.innerHTML = 'Results cleared...\n';
+            testResults = { single: null, parallel: null };
+            ['single', 'parallel'].forEach(type => {
+                document.getElementById(`${type}Time`).textContent = '-';
+                document.getElementById(`${type}Attempts`).textContent = '-';
+                document.getElementById(`${type}Rate`).textContent = '-';
+                document.getElementById(`${type}Success`).textContent = '-';
+            });
+            document.getElementById('speedupResult').style.display = 'none';
+            updateProgress(-1);
+        };
+
+        window.runSingleThreadTest = async function() {
+            log('Starting single-threaded performance test...', 'info');
+            
+            try {
+                if (!wasmInitialized) {
+                    log('Initializing WASM module...');
+                    await init();
+                    wasmInitialized = true;
+                    log('WASM module initialized', 'success');
+                }
+
+                const target = 'test'; // 4-character pattern for measurable performance
+                const maxAttempts = 5000;
+                
+                log(`Testing pattern "${target}" with ${maxAttempts.toLocaleString()} attempts`);
+                updateProgress(0);
+                
+                const startTime = Date.now();
+                const result = generate_vanity_keypair_batch(target, VanityPosition.Prefix, maxAttempts);
+                const endTime = Date.now();
+                
+                const duration = endTime - startTime;
+                const attempts = result ? result.attempts : maxAttempts;
+                const rate = Math.round(attempts / (duration / 1000));
+                const success = result && result.address;
+                
+                updateProgress(100);
+                
+                const data = { duration, attempts, rate, success };
+                updateResults('single', data);
+                
+                if (success) {
+                    log(`Single-thread SUCCESS: Found "${target}" in ${attempts.toLocaleString()} attempts`, 'success');
+                    log(`Address: ${result.address}`);
+                } else {
+                    log(`Single-thread completed: ${attempts.toLocaleString()} attempts, no match found`);
+                }
+                
+                log(`Single-thread rate: ${rate.toLocaleString()} addresses/second`, 'success');
+                
+            } catch (error) {
+                log(`Single-thread test failed: ${error.message}`, 'error');
+                updateProgress(-1);
+            }
+        };
+
+        window.runParallelTest = async function() {
+            log('Starting parallel processing performance test...', 'info');
+            
+            try {
+                // Create multiple workers for parallel processing
+                const workers = [];
+                const maxWorkers = workerCount;
+                
+                log(`Creating ${maxWorkers} workers for parallel processing...`);
+                
+                for (let i = 0; i < maxWorkers; i++) {
+                    const worker = new Worker('./worker.js', { type: 'module' });
+                    workers.push(worker);
+                }
+                
+                log(`${workers.length} workers created`, 'success');
+                
+                const target = 'test';
+                const attemptsPerWorker = Math.floor(5000 / maxWorkers);
+                const totalAttempts = attemptsPerWorker * maxWorkers;
+                
+                log(`Testing pattern "${target}" with ${totalAttempts.toLocaleString()} total attempts`);
+                log(`${attemptsPerWorker.toLocaleString()} attempts per worker`);
+                
+                updateProgress(0);
+                
+                const startTime = Date.now();
+                
+                // Start all workers simultaneously
+                const workerPromises = workers.map((worker, index) => {
+                    return new Promise((resolve, reject) => {
+                        const messageId = `test-${Date.now()}-${index}`;
+                        
+                        worker.onmessage = (e) => {
+                            if (e.data.id === messageId) {
+                                if (e.data.success) {
+                                    resolve(e.data.data);
+                                } else {
+                                    reject(new Error(e.data.error));
+                                }
+                            }
+                        };
+                        
+                        worker.onerror = reject;
+                        
+                        worker.postMessage({
+                            id: messageId,
+                            type: 'GENERATE_VANITY_BATCH',
+                            data: {
+                                target,
+                                position: 'prefix',
+                                maxIterations: attemptsPerWorker
+                            }
+                        });
+                    });
+                });
+                
+                // Wait for all workers to complete
+                const results = await Promise.allSettled(workerPromises);
+                const endTime = Date.now();
+                
+                // Cleanup workers
+                workers.forEach(worker => worker.terminate());
+                
+                const duration = endTime - startTime;
+                const totalAttemptsActual = results.reduce((sum, result) => {
+                    return sum + (result.status === 'fulfilled' && result.value ? result.value.attempts : attemptsPerWorker);
+                }, 0);
+                
+                const rate = Math.round(totalAttemptsActual / (duration / 1000));
+                const successfulResult = results.find(result => 
+                    result.status === 'fulfilled' && result.value && result.value.address
+                );
+                const success = !!successfulResult;
+                
+                updateProgress(100);
+                
+                const data = { duration, attempts: totalAttemptsActual, rate, success };
+                updateResults('parallel', data);
+                
+                if (success) {
+                    log(`Parallel SUCCESS: Found "${target}" across ${maxWorkers} workers`, 'success');
+                    log(`Address: ${successfulResult.value.address}`);
+                } else {
+                    log(`Parallel completed: ${totalAttemptsActual.toLocaleString()} attempts across ${maxWorkers} workers`);
+                }
+                
+                log(`Parallel rate: ${rate.toLocaleString()} addresses/second`, 'success');
+                log(`Theoretical max speedup: ${maxWorkers}x`);
+                
+            } catch (error) {
+                log(`Parallel test failed: ${error.message}`, 'error');
+                updateProgress(-1);
+            }
+        };
+
+        window.runComparison = async function() {
+            log('Running full performance comparison...', 'info');
+            log('This will take approximately 20-30 seconds', 'warning');
+            
+            await runSingleThreadTest();
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Brief pause
+            await runParallelTest();
+            
+            log('Performance comparison completed!', 'success');
+        };
+
+        // Initialize
+        log('Performance comparison tool ready');
+        log(`System: ${cpuCores} cores, ${workerCount} workers configured`);
+        log('Click "Full Comparison" to test both single and parallel performance');
+    </script>
+</body>
+</html>

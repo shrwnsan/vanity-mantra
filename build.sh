@@ -29,7 +29,7 @@ echo "🎯 Adding WebAssembly target..."
 rustup target add wasm32-unknown-unknown
 
 # Build the WebAssembly module
-echo "🏗️  Building WebAssembly module..."
+echo "🏗️  Building WebAssembly module with optimized batch processing..."
 cd wasm-module
 wasm-pack build --target web --out-dir ../
 
