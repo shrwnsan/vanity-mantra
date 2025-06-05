@@ -132,6 +132,10 @@ class VanityGeneratorApp {
     if (!trimmed) {
       this.elements.targetInput.style.borderColor = '';
       this.hideStatus();
+      if (this.elements.suggestionsArea) { // Check if suggestionsArea is available
+        this.elements.suggestionsArea.innerHTML = '';
+        this.elements.suggestionsArea.style.display = 'none';
+      }
       return true;
     }
 
