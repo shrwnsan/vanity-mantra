@@ -40,8 +40,12 @@ jobs:
       - name: Prepare deployment files
         run: |
           mkdir -p _site
-          cp index.html main.js vanity_wasm* _site/
-          
+          cp index.html main.js worker.js _site/
+          cp vanity_wasm.js vanity_wasm_bg.wasm vanity_wasm.d.ts vanity_wasm_bg.wasm.d.ts _site/ 2>/dev/null || true
+          # Copy any additional test files if they exist
+          if [ -f "test-performance.html" ]; then cp performance-comparison.html _site/; fi
+          if [ -f "test-integration.html" ]; then cp quick-test.html _site/; fi
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 

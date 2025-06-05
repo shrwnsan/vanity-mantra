@@ -98,6 +98,49 @@ export function generate_vanity_keypair(target: string, max_attempts: number): K
  */
 export function derive_address_from_mnemonic(mnemonic_str: string): string;
 /**
+ * Generate multiple random keypairs in a single WASM call for better performance
+ *
+ * This function generates a batch of random keypairs, which can be more efficient
+ * than calling generate_random_keypair() multiple times from JavaScript.
+ * This is designed to work well with Web Workers for parallelization.
+ *
+ * # Arguments
+ * * `count` - Number of keypairs to generate
+ *
+ * # Returns
+ * * `Vec<Keypair>` - Vector of generated keypairs
+ */
+export function generate_random_keypairs_batch(count: number): Keypair[];
+/**
+ * Generate vanity keypairs in batches for better performance
+ *
+ * This function generates keypairs in batches and checks each one against
+ * the target pattern. It returns the first match found, or None if no
+ * match is found within the batch.
+ *
+ * # Arguments
+ * * `target` - The substring pattern to search for in addresses
+ * * `position` - Where the pattern should appear (Anywhere, Prefix, or Suffix)
+ * * `batch_size` - Number of keypairs to generate and check in this batch
+ *
+ * # Returns
+ * * `Option<Keypair>` - The first matching keypair, or None if no match found
+ */
+export function generate_vanity_keypair_batch(target: string, position: VanityPosition, batch_size: number): Keypair | undefined;
+/**
+ * Get optimal batch size for performance
+ *
+ * Returns a recommended batch size for vanity generation based on the target pattern.
+ * Shorter patterns can use larger batch sizes, while longer patterns should use smaller ones.
+ *
+ * # Arguments
+ * * `target_length` - Length of the target pattern
+ *
+ * # Returns
+ * * `u32` - Recommended batch size
+ */
+export function get_optimal_batch_size(target_length: number): number;
+/**
  * Position where the vanity string should appear in the address
  */
 export enum VanityPosition {
@@ -154,6 +197,9 @@ export interface InitOutput {
   readonly generate_vanity_keypair_with_position: (a: number, b: number, c: number, d: number) => number;
   readonly generate_vanity_keypair: (a: number, b: number, c: number) => number;
   readonly derive_address_from_mnemonic: (a: number, b: number) => [number, number];
+  readonly generate_random_keypairs_batch: (a: number) => [number, number];
+  readonly generate_vanity_keypair_batch: (a: number, b: number, c: number, d: number) => number;
+  readonly get_optimal_batch_size: (a: number) => number;
   readonly main: () => void;
   readonly __wbindgen_exn_store: (a: number) => void;
   readonly __externref_table_alloc: () => number;
@@ -161,6 +207,7 @@ export interface InitOutput {
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly __externref_drop_slice: (a: number, b: number) => void;
   readonly __wbindgen_start: () => void;
 }
 

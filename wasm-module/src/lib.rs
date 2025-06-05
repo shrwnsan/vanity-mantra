@@ -11,7 +11,7 @@ use bip39::Mnemonic;
 use hmac::{Hmac, Mac};
 use k256::{
     ecdsa::SigningKey,
-    elliptic_curve::{sec1::ToEncodedPoint, PrimeField},
+    elliptic_curve::PrimeField,
     Scalar,
 };
 use rand::{rngs::OsRng, RngCore};
@@ -341,5 +341,98 @@ pub fn derive_address_from_mnemonic(mnemonic_str: &str) -> String {
             Err(e) => format!("Error deriving address: {}", e),
         },
         Err(e) => format!("Invalid mnemonic: {}", e),
+    }
+}
+
+/// Generate multiple random keypairs in a single WASM call for better performance
+///
+/// This function generates a batch of random keypairs, which can be more efficient
+/// than calling generate_random_keypair() multiple times from JavaScript.
+/// This is designed to work well with Web Workers for parallelization.
+///
+/// # Arguments
+/// * `count` - Number of keypairs to generate
+///
+/// # Returns
+/// * `Vec<Keypair>` - Vector of generated keypairs
+#[wasm_bindgen]
+pub fn generate_random_keypairs_batch(count: u32) -> Vec<Keypair> {
+    let mut keypairs = Vec::with_capacity(count as usize);
+    
+    for _ in 0..count {
+        keypairs.push(generate_random_keypair());
+    }
+    
+    keypairs
+}
+
+/// Generate vanity keypairs in batches for better performance
+///
+/// This function generates keypairs in batches and checks each one against
+/// the target pattern. It returns the first match found, or None if no
+/// match is found within the batch.
+///
+/// # Arguments
+/// * `target` - The substring pattern to search for in addresses
+/// * `position` - Where the pattern should appear (Anywhere, Prefix, or Suffix)
+/// * `batch_size` - Number of keypairs to generate and check in this batch
+///
+/// # Returns
+/// * `Option<Keypair>` - The first matching keypair, or None if no match found
+#[wasm_bindgen]
+pub fn generate_vanity_keypair_batch(
+    target: &str,
+    position: VanityPosition,
+    batch_size: u32,
+) -> Option<Keypair> {
+    let target_lower = target.to_lowercase();
+    
+    for _ in 0..batch_size {
+        let keypair = generate_random_keypair();
+        let address_lower = keypair.address.to_lowercase();
+
+        let matches = match position {
+            VanityPosition::Anywhere => address_lower.contains(&target_lower),
+            VanityPosition::Prefix => {
+                // Check if pattern appears right after "mantra1"
+                if address_lower.len() > 7 + target_lower.len() {
+                    address_lower[7..].starts_with(&target_lower)
+                } else {
+                    false
+                }
+            }
+            VanityPosition::Suffix => {
+                // Check if pattern appears at the end
+                address_lower.ends_with(&target_lower)
+            }
+        };
+
+        if matches {
+            return Some(keypair);
+        }
+    }
+    
+    None
+}
+
+/// Get optimal batch size for performance
+///
+/// Returns a recommended batch size for vanity generation based on the target pattern.
+/// Shorter patterns can use larger batch sizes, while longer patterns should use smaller ones.
+///
+/// # Arguments
+/// * `target_length` - Length of the target pattern
+///
+/// # Returns
+/// * `u32` - Recommended batch size
+#[wasm_bindgen]
+pub fn get_optimal_batch_size(target_length: u32) -> u32 {
+    match target_length {
+        1 => 100,
+        2 => 500,
+        3 => 1000,
+        4 => 2000,
+        5 => 5000,
+        _ => 10000,
     }
 }
