@@ -207,6 +207,29 @@
       margin-top: 0.5rem;
     }
 
+    /* Suggestions Area Styling */
+    #suggestionsArea {
+      margin-top: 0.75rem; /* Space above the suggestions */
+      display: flex; /* Allow suggestions to flow inline and wrap */
+      flex-wrap: wrap; /* Suggestions wrap to next line if needed */
+      gap: 0.5rem; /* Space between suggestion items */
+    }
+
+    .suggestion-item {
+      padding: 0.5rem 0.75rem;
+      background-color: var(--primary-color); /* Use existing theme variable */
+      color: white; /* Text color for suggestion buttons */
+      border: 1px solid var(--primary-hover); /* Border for buttons */
+      border-radius: var(--border-radius); /* Use existing theme variable */
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background-color 0.2s;
+    }
+
+    .suggestion-item:hover {
+      background-color: var(--primary-hover); /* Darken on hover, use theme variable */
+    }
+
     .radio-group {
       display: flex;
       flex-direction: column;
@@ -369,6 +392,7 @@
         <div class="help-text">
           Enter a substring to search for in the address. Valid characters: qpzry9x8gf2tvdw0s3jn54khce6mua7l and "1"
         </div>
+        <div id="suggestionsArea"></div>
       </div>
 
       <div class="form-group">
