@@ -5,6 +5,11 @@ All notable changes to the MANTRA Vanity Address Generator will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - YYYY-MM-DD
+### Changed
+- Switched the default UI theme to Dark Mode for improved visual ergonomics.
+- Updated CSS custom properties in `index.html` to reflect the new dark theme.
+
 ## [1.0.0] - 2025-06-01
 
 ### 🎉 Initial Release

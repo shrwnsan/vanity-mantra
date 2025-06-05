@@ -19,7 +19,7 @@ A modern, secure, and high-performance vanity address generator for the MANTRA b
 - **🔒 Cryptographically Secure**: Uses proper BIP32/BIP44 HD derivation compatible with all standard wallets
 - **⚡ High Performance**: Rust/WebAssembly backend for optimal speed
 - **📱 Responsive Design**: Works seamlessly on desktop and mobile
-- **🎨 Modern UI**: Clean, intuitive interface with real-time feedback
+- **🎨 Modern UI**: Clean, intuitive interface with a default dark theme and real-time feedback
 - **📋 One-Click Copy**: Easy copying of addresses and mnemonic phrases
 - **🔄 Real-Time Progress**: Live updates during generation
 

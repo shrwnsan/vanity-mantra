@@ -297,29 +297,29 @@ async generateVanityAddress() {
 We use modern CSS with custom properties for consistent theming:
 
 ```css
-:root {
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
-  --success-color: #16a34a;
-  --error-color: #dc2626;
-  --warning-color: #d97706;
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --border: #e2e8f0;
-  --border-radius: 8px;
-  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-}
+     :root {
+       --primary-color: #3b82f6;
+       --primary-hover: #2563eb;
+       --success-color: #22c55e;
+       --error-color: #ef4444;
+       --warning-color: #f97316;
+       --background: #1f2937;
+       --surface: #374151;
+       --text-primary: #f3f4f6;
+       --text-secondary: #9ca3af;
+       --border: #4b5563;
+       --border-radius: 8px;
+       --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.15);
+     }
 
-.card {
-  background: var(--surface);
-  border-radius: var(--border-radius);
-  padding: 2rem;
-  box-shadow: var(--shadow);
-  margin-bottom: 1.5rem;
-}
-```
+     .card {
+       background: var(--surface);
+       border-radius: var(--border-radius);
+       padding: 2rem;
+       box-shadow: var(--shadow);
+       margin-bottom: 1.5rem;
+     }
+     ```
 
 ### Position Selection UI
 
