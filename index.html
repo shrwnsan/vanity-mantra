@@ -462,12 +462,16 @@
     }
 
     .suggestion-list li {
-      padding: 0.25rem 0.5rem;
+      display: inline-block; /* Key change for inline button appearance */
+      padding: 0.3rem 0.75rem; /* Adjust for button feel */
+      margin-right: 0.5rem;   /* Space between buttons */
+      margin-bottom: 0.5rem;  /* Space for wrapping lines of buttons */
       cursor: pointer;
-      border-radius: 4px;
-      margin-bottom: 0.25rem;
-      background-color: var(--background); /* Or a slightly different shade */
-      border: 1px solid var(--border);
+      border: 1px solid var(--primary-color); /* Button-like border */
+      border-radius: var(--border-radius); /* Consistent border radius */
+      background-color: var(--surface); /* Or var(--primary-color) with white text for filled buttons */
+      color: var(--primary-color);      /* Text color for outline-style buttons */
+      transition: background-color 0.2s, color 0.2s; /* Smooth hover transition */
     }
 
     .suggestion-list li:hover {
