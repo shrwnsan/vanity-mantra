@@ -257,7 +257,8 @@ class VanityGeneratorApp {
       attemptsValue: document.getElementById('attemptsValue'),
       durationValue: document.getElementById('durationValue'),
       rateValue: document.getElementById('rateValue'),
-      suggestionList: document.getElementById('suggestionList')
+      suggestionList: document.getElementById('suggestionList'),
+      suggestionArea: document.getElementById('suggestionArea')
     };
   }
 
@@ -353,12 +354,13 @@ class VanityGeneratorApp {
    */
   validateInput(target) {
     const feedback = document.getElementById('inputFeedback');
-    // Clear previous suggestions by default
-    this.elements.suggestionList.innerHTML = '';
+    // Clear previous suggestions and preamble from the suggestion area
+    if (this.elements.suggestionArea) { // Ensure suggestionArea is available
+        this.elements.suggestionArea.innerHTML = '';
+    }
     
     if (!target) {
       feedback.textContent = '';
-      // feedback.className is not set here, so it might retain old classes. Let's clear it.
       feedback.className = 'feedback';
       return true;
     }
@@ -372,45 +374,58 @@ class VanityGeneratorApp {
     if (target.length > 10) {
       feedback.textContent = 'Target too long - generation may take very long time';
       feedback.className = 'feedback warning';
-      // Even if too long, it might have invalid chars, so we don't return yet.
-      // But we also don't want suggestions for length issues.
-      // However, the spec says to clear suggestions if not showing them.
-      // The current logic will proceed to check validate_target_string.
-      // If it's valid but too long, no suggestions. If invalid AND too long, suggestions.
-      // This seems acceptable.
+      // Continue to check for invalid characters, as suggestions might still be useful
+      // if the pattern is both too long AND contains invalid characters.
     }
 
     if (!validate_target_string(target)) {
-      feedback.textContent = 'Invalid characters - use only: 0-9, a-z (except "b", "i", "o", "1")';
-      feedback.className = 'feedback error';
+      // Set main error message in inputFeedback
+      if (!feedback.classList.contains('warning')) { // Don't overwrite "too long" if it's also invalid
+          feedback.textContent = 'Invalid characters - use only: 0-9, a-z (except "b", "i", "o", "1")';
+          feedback.className = 'feedback error';
+      } else {
+          // It's already a warning (too long), add invalid char info
+          feedback.textContent += ' Contains invalid characters.';
+          // Keep class 'feedback warning error' or similar if desired, for now just error takes precedence if also invalid
+          feedback.className = 'feedback error';
+      }
 
       const suggestions = this.generateSuggestions(target);
 
-      if (suggestions.length > 0) {
-        // Optionally, add a "Did you mean?" message if feedback.textContent could be cleared
-        // For now, assuming feedback.textContent is the primary error message.
-        // A small header for suggestions could be added directly to the list or as a separate element.
-        // Let's add a small descriptive text before the list items if not already present.
-        // This could be a P element prepended to suggestionList, or handled by CSS ::before.
-        // To keep it simple, we'll just populate the list.
+      if (suggestions.length > 0 && this.elements.suggestionArea && this.elements.suggestionList) {
+        // 1. (Already done by clearing suggestionArea.innerHTML)
 
+        // 2. Create and add the "Did you mean:" preamble
+        const preamble = document.createElement('p');
+        preamble.textContent = 'Did you mean:';
+        // preamble.className = 'suggestion-preamble'; // Optional class for styling
+        this.elements.suggestionArea.appendChild(preamble);
+
+        // 3. Clear any old items from the persistent UL element
+        this.elements.suggestionList.innerHTML = '';
+
+        // 4. Populate the UL (this.elements.suggestionList) with new suggestion LIs
         suggestions.forEach(suggestionText => {
           const listItem = document.createElement('li');
           listItem.textContent = suggestionText;
           listItem.addEventListener('click', () => {
             this.elements.targetInput.value = suggestionText;
-            this.validateInput(suggestionText); // Re-validate, which will clear suggestions if valid
+            // Re-validate, which will clear suggestions and update feedback
+            this.validateInput(suggestionText);
             this.elements.targetInput.focus();
           });
           this.elements.suggestionList.appendChild(listItem);
         });
+
+        // 5. Append the now-populated UL to the suggestionArea
+        this.elements.suggestionArea.appendChild(this.elements.suggestionList);
       }
       return false; // Input is invalid
     }
 
-    // If it's a warning (e.g. too long) but characters are valid, we might have set feedback.textContent already.
-    // If we reached here and it's not an error, it's a success or a warning with valid chars.
-    if (!feedback.classList.contains('error')) { // Avoid overwriting "too long" if it's also valid
+    // If it's a warning (e.g. too long) but characters are valid, feedback.textContent is already set.
+    // If we reached here and it's not an error or warning, it's a success.
+    if (!feedback.classList.contains('error') && !feedback.classList.contains('warning')) {
         feedback.textContent = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
         feedback.className = 'feedback success';
     }

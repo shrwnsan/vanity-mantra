@@ -474,6 +474,10 @@
       background-color: var(--primary-color);
       color: white;
     }
+
+    .suggestion-container {
+      margin-top: 0.5rem; /* Or adjust as needed */
+    }
   </style>
 </head>
 <body>
@@ -498,7 +502,8 @@
         <div class="help-text">
           Enter a substring to search for in the address. Valid characters: qpzry9x8gf2tvdw0s3jn54khce6mua7l and "1"
         </div>
-        <div id="inputFeedback" class="feedback">
+        <div id="inputFeedback" class="feedback"></div>
+        <div id="suggestionArea" class="suggestion-container">
           <ul id="suggestionList" class="suggestion-list"></ul>
         </div>
       </div>
