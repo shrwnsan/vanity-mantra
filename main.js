@@ -22,6 +22,9 @@ import init, {
   VanityPosition
 } from "./vanity_wasm.js";
 
+const VALID_CHARS = ['q', 'p', 'z', 'r', 'y', '9', 'x', '8', 'g', 'f', '2', 't', 'v', 'd', 'w', '0', 's', '3', 'j', 'n', '5', '4', 'k', 'h', 'c', 'e', '6', 'm', 'u', 'a', '7', 'l', '1'];
+const COMMON_SUBSTITUTES = {'o': '0', 'i': '1', 'b': '8'};
+
 /**
  * Parallel processing manager using Web Workers
  */
@@ -253,7 +256,8 @@ class VanityGeneratorApp {
       mnemonicValue: document.getElementById('mnemonicValue'),
       attemptsValue: document.getElementById('attemptsValue'),
       durationValue: document.getElementById('durationValue'),
-      rateValue: document.getElementById('rateValue')
+      rateValue: document.getElementById('rateValue'),
+      suggestionList: document.getElementById('suggestionList')
     };
   }
 
@@ -349,9 +353,13 @@ class VanityGeneratorApp {
    */
   validateInput(target) {
     const feedback = document.getElementById('inputFeedback');
+    // Clear previous suggestions by default
+    this.elements.suggestionList.innerHTML = '';
     
     if (!target) {
       feedback.textContent = '';
+      // feedback.className is not set here, so it might retain old classes. Let's clear it.
+      feedback.className = 'feedback';
       return true;
     }
 
@@ -364,17 +372,48 @@ class VanityGeneratorApp {
     if (target.length > 10) {
       feedback.textContent = 'Target too long - generation may take very long time';
       feedback.className = 'feedback warning';
-      return false;
+      // Even if too long, it might have invalid chars, so we don't return yet.
+      // But we also don't want suggestions for length issues.
+      // However, the spec says to clear suggestions if not showing them.
+      // The current logic will proceed to check validate_target_string.
+      // If it's valid but too long, no suggestions. If invalid AND too long, suggestions.
+      // This seems acceptable.
     }
 
     if (!validate_target_string(target)) {
       feedback.textContent = 'Invalid characters - use only: 0-9, a-z (except "b", "i", "o", "1")';
       feedback.className = 'feedback error';
-      return false;
+
+      const suggestions = this.generateSuggestions(target);
+
+      if (suggestions.length > 0) {
+        // Optionally, add a "Did you mean?" message if feedback.textContent could be cleared
+        // For now, assuming feedback.textContent is the primary error message.
+        // A small header for suggestions could be added directly to the list or as a separate element.
+        // Let's add a small descriptive text before the list items if not already present.
+        // This could be a P element prepended to suggestionList, or handled by CSS ::before.
+        // To keep it simple, we'll just populate the list.
+
+        suggestions.forEach(suggestionText => {
+          const listItem = document.createElement('li');
+          listItem.textContent = suggestionText;
+          listItem.addEventListener('click', () => {
+            this.elements.targetInput.value = suggestionText;
+            this.validateInput(suggestionText); // Re-validate, which will clear suggestions if valid
+            this.elements.targetInput.focus();
+          });
+          this.elements.suggestionList.appendChild(listItem);
+        });
+      }
+      return false; // Input is invalid
     }
 
-    feedback.textContent = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
-    feedback.className = 'feedback success';
+    // If it's a warning (e.g. too long) but characters are valid, we might have set feedback.textContent already.
+    // If we reached here and it's not an error, it's a success or a warning with valid chars.
+    if (!feedback.classList.contains('error')) { // Avoid overwriting "too long" if it's also valid
+        feedback.textContent = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
+        feedback.className = 'feedback success';
+    }
     return true;
   }
 
@@ -834,6 +873,94 @@ class VanityGeneratorApp {
         workerCountElement.textContent = '1';
       }
     }
+  }
+
+  /**
+   * Generate suggestions for invalid user input
+   */
+  generateSuggestions(userInput, maxSuggestions = 5) {
+    const suggestions = new Set();
+    const lowerUserInput = userInput.toLowerCase();
+
+    const addSuggestion = (patternStr) => {
+      if (suggestions.size < maxSuggestions && validate_target_string(patternStr)) {
+        suggestions.add(patternStr);
+      }
+    };
+
+    // Suggestion 1: Comprehensive Replacement
+    let comprehensiveChars = Array.from(lowerUserInput).map(char => {
+      if (validate_target_string(char)) {
+        return char;
+      }
+      return COMMON_SUBSTITUTES[char] || VALID_CHARS[0];
+    });
+    addSuggestion(comprehensiveChars.join(''));
+
+    // Find invalid character indices
+    const invalidCharIndices = [];
+    for (let i = 0; i < lowerUserInput.length; i++) {
+      if (!validate_target_string(lowerUserInput[i])) {
+        invalidCharIndices.push(i);
+      }
+    }
+
+    // Suggestion 2-N: Focused First Invalid Character Replacement
+    if (invalidCharIndices.length > 0) {
+      const firstInvalidIndex = invalidCharIndices[0];
+      const originalInvalidChar = lowerUserInput[firstInvalidIndex];
+      let tempChars = Array.from(lowerUserInput);
+
+      if (COMMON_SUBSTITUTES[originalInvalidChar]) {
+        tempChars[firstInvalidIndex] = COMMON_SUBSTITUTES[originalInvalidChar];
+        addSuggestion(tempChars.join(''));
+      }
+
+      for (const validChar of VALID_CHARS) {
+        if (suggestions.size >= maxSuggestions) break;
+        if (COMMON_SUBSTITUTES[originalInvalidChar] === validChar) continue; // Avoid duplicate
+        tempChars[firstInvalidIndex] = validChar;
+        addSuggestion(tempChars.join(''));
+        if (suggestions.size >= maxSuggestions) break;
+      }
+    }
+
+    // Suggestion 3-M: Focused Second Invalid Character Replacement
+    if (invalidCharIndices.length > 1 && suggestions.size < maxSuggestions) {
+      const secondInvalidIndex = invalidCharIndices[1];
+      const originalSecondInvalidChar = lowerUserInput[secondInvalidIndex];
+
+      // Base for second fix: Use comprehensive replacement up to second invalid char
+      let baseForSecondFixChars = Array.from(lowerUserInput).map((char, index) => {
+        if (index < secondInvalidIndex && !validate_target_string(char)) {
+          return COMMON_SUBSTITUTES[char] || VALID_CHARS[0];
+        }
+        return char;
+      });
+
+      if (COMMON_SUBSTITUTES[originalSecondInvalidChar]) {
+        baseForSecondFixChars[secondInvalidIndex] = COMMON_SUBSTITUTES[originalSecondInvalidChar];
+        addSuggestion(baseForSecondFixChars.join(''));
+      }
+
+      for (const validChar of VALID_CHARS) {
+        if (suggestions.size >= maxSuggestions) break;
+        if (COMMON_SUBSTITUTES[originalSecondInvalidChar] === validChar) continue; // Avoid duplicate
+
+        let tempSecondFixChars = [...baseForSecondFixChars]; // Create a new copy
+        tempSecondFixChars[secondInvalidIndex] = validChar;
+        // Ensure remaining characters are also valid or substituted
+        for(let i = secondInvalidIndex + 1; i < tempSecondFixChars.length; i++) {
+            if(!validate_target_string(tempSecondFixChars[i])) {
+                tempSecondFixChars[i] = COMMON_SUBSTITUTES[tempSecondFixChars[i]] || VALID_CHARS[0];
+            }
+        }
+        addSuggestion(tempSecondFixChars.join(''));
+        if (suggestions.size >= maxSuggestions) break;
+      }
+    }
+
+    return Array.from(suggestions);
   }
 }
 
