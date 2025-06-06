@@ -252,14 +252,20 @@ class VanityGeneratorApp {
       generateButton: document.getElementById('generateButton'),
       statusDiv: document.getElementById('status'),
       resultsDiv: document.getElementById('results'),
-      addressValue: document.getElementById('addressValue'),
-      mnemonicValue: document.getElementById('mnemonicValue'),
+      addressValue: document.getElementById('addressValue'), // This is the container div
+      mnemonicValue: document.getElementById('mnemonicValue'), // This is the container div
+      addressTextElement: document.getElementById('addressText'), // For the actual address string
+      mnemonicTextElement: document.getElementById('mnemonicText'), // For the actual mnemonic string or placeholder
+      toggleMnemonicVisibilityButton: document.getElementById('toggleMnemonicVisibilityButton'), // Button to toggle mnemonic
       attemptsValue: document.getElementById('attemptsValue'),
       durationValue: document.getElementById('durationValue'),
       rateValue: document.getElementById('rateValue'),
       suggestionList: document.getElementById('suggestionList'),
       suggestionArea: document.getElementById('suggestionArea')
     };
+
+    this.actualMnemonic = ''; // Store the actual mnemonic phrase
+    this.isMnemonicVisible = false; // Track visibility state
   }
 
   /**
@@ -331,6 +337,20 @@ class VanityGeneratorApp {
         this.stopGeneration();
       }
     });
+
+    // Mnemonic visibility toggle
+    if (this.elements.toggleMnemonicVisibilityButton) {
+      this.elements.toggleMnemonicVisibilityButton.addEventListener('click', () => {
+        this.isMnemonicVisible = !this.isMnemonicVisible;
+        if (this.isMnemonicVisible) {
+          this.elements.mnemonicTextElement.textContent = this.actualMnemonic;
+          this.elements.toggleMnemonicVisibilityButton.textContent = '🙈'; // "Hide" icon
+        } else {
+          this.elements.mnemonicTextElement.textContent = '••••••••••••'; // Placeholder
+          this.elements.toggleMnemonicVisibilityButton.textContent = '👁️'; // "Show" icon
+        }
+      });
+    }
   }
 
   /**
@@ -381,7 +401,7 @@ class VanityGeneratorApp {
     if (!validate_target_string(target)) {
       // Set main error message in inputFeedback
       if (!feedback.classList.contains('warning')) { // Don't overwrite "too long" if it's also invalid
-          feedback.textContent = 'Invalid characters - use only: 0-9, a-z (except "b", "i", "o", "1")';
+          feedback.textContent = 'Please use valid characters - only: 0-9, a-z (excluding b, i, o)'; // THIS LINE NEEDS TO CHANGE
           feedback.className = 'feedback error';
       } else {
           // It's already a warning (too long), add invalid char info
@@ -735,8 +755,16 @@ class VanityGeneratorApp {
    * Show generation success
    */
   showSuccess(keypair) {
-    this.elements.addressValue.textContent = keypair.address;
-    this.elements.mnemonicValue.textContent = keypair.mnemonic;
+    this.elements.addressTextElement.textContent = keypair.address; // Update address text
+
+    // Handle mnemonic display and visibility
+    this.actualMnemonic = keypair.mnemonic;
+    this.elements.mnemonicTextElement.textContent = '••••••••••••'; // Show placeholder
+    this.isMnemonicVisible = false;
+    if (this.elements.toggleMnemonicVisibilityButton) {
+        this.elements.toggleMnemonicVisibilityButton.textContent = '👁️'; // Reset to "show" icon
+    }
+
     this.elements.resultsDiv.style.display = 'block';
     
     // Stop animations
