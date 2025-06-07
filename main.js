@@ -252,20 +252,14 @@ class VanityGeneratorApp {
       generateButton: document.getElementById('generateButton'),
       statusDiv: document.getElementById('status'),
       resultsDiv: document.getElementById('results'),
-      addressValue: document.getElementById('addressValue'), // This is the container div
-      mnemonicValue: document.getElementById('mnemonicValue'), // This is the container div
-      addressTextElement: document.getElementById('addressText'), // For the actual address string
-      mnemonicTextElement: document.getElementById('mnemonicText'), // For the actual mnemonic string or placeholder
-      toggleMnemonicVisibilityButton: document.getElementById('toggleMnemonicVisibilityButton'), // Button to toggle mnemonic
+      addressValue: document.getElementById('addressValue'),
+      mnemonicValue: document.getElementById('mnemonicValue'),
       attemptsValue: document.getElementById('attemptsValue'),
       durationValue: document.getElementById('durationValue'),
       rateValue: document.getElementById('rateValue'),
       suggestionList: document.getElementById('suggestionList'),
       suggestionArea: document.getElementById('suggestionArea')
     };
-
-    this.actualMnemonic = ''; // Store the actual mnemonic phrase
-    this.isMnemonicVisible = false; // Track visibility state
   }
 
   /**
@@ -337,20 +331,6 @@ class VanityGeneratorApp {
         this.stopGeneration();
       }
     });
-
-    // Mnemonic visibility toggle
-    if (this.elements.toggleMnemonicVisibilityButton) {
-      this.elements.toggleMnemonicVisibilityButton.addEventListener('click', () => {
-        this.isMnemonicVisible = !this.isMnemonicVisible;
-        if (this.isMnemonicVisible) {
-          this.elements.mnemonicTextElement.textContent = this.actualMnemonic;
-          this.elements.toggleMnemonicVisibilityButton.textContent = '🙈'; // "Hide" icon
-        } else {
-          this.elements.mnemonicTextElement.textContent = '••••••••••••'; // Placeholder
-          this.elements.toggleMnemonicVisibilityButton.textContent = '👁️'; // "Show" icon
-        }
-      });
-    }
   }
 
   /**
@@ -373,83 +353,66 @@ class VanityGeneratorApp {
    * Validate user input
    */
   validateInput(target) {
-    const feedback = document.getElementById('inputFeedback');
-    // Clear previous suggestions and preamble from the suggestion area
-    if (this.elements.suggestionArea) { // Ensure suggestionArea is available
-        this.elements.suggestionArea.innerHTML = '';
+    if (this.elements.suggestionArea) { // Ensure suggestionArea is available before trying to clear
+        this.elements.suggestionArea.innerHTML = ''; // Clear suggestions UI initially
     }
-    
+
+    const feedback = this.elements.inputFeedback; // Use stored reference
+    let message = '';
+    let className = 'feedback'; // Default state for feedback element
+    let canGenerate = false;
+
     if (!target) {
-      feedback.textContent = '';
-      feedback.className = 'feedback';
-      return true;
+        message = ''; // Or "Please enter a target pattern." if preferred for empty state
+        className = 'feedback';
+        canGenerate = false;
+    } else if (target.length < 1) { // This case is technically covered by !target if target can be ""
+        message = 'Target must be at least 1 character';
+        className = 'feedback error';
+        canGenerate = false;
+    } else if (!validate_target_string(target)) {
+        message = 'Invalid characters - use only: 0-9, a-z (except "b", "i", "o", "1")';
+        className = 'feedback error';
+        if (target.length > 10) {
+            message = `Target is too long. Also, it contains invalid characters. Use only: 0-9, a-z (except "b", "i", "o", "1")`;
+        }
+
+        const suggestions = this.generateSuggestions(target);
+        if (suggestions.length > 0 && this.elements.suggestionArea && this.elements.suggestionList) {
+            const preamble = document.createElement('p');
+            preamble.textContent = 'Did you mean:';
+            this.elements.suggestionArea.appendChild(preamble);
+
+            this.elements.suggestionList.innerHTML = ''; // Clear old LIs
+            suggestions.forEach(suggestionText => {
+                const listItem = document.createElement('li');
+                listItem.textContent = suggestionText;
+                listItem.addEventListener('click', () => {
+                    this.elements.targetInput.value = suggestionText;
+                    this.validateInput(suggestionText); // This will re-validate and clear suggestions
+                    this.elements.targetInput.focus();
+                });
+                this.elements.suggestionList.appendChild(listItem);
+            });
+            this.elements.suggestionArea.appendChild(this.elements.suggestionList);
+        }
+        canGenerate = false;
+    } else if (target.length > 10) { // Characters are valid, but too long
+        message = `Target is too long (${target.length} chars). Max 10 recommended. Generation may take a very long time.`;
+        // Optionally add: ` (Difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`
+        className = 'feedback warning';
+        canGenerate = true; // Allow generation attempt despite warning
+    } else { // Characters are valid, and length is good (1-10)
+        message = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
+        className = 'feedback success';
+        canGenerate = true;
     }
 
-    if (target.length < 1) {
-      feedback.textContent = 'Target must be at least 1 character';
-      feedback.className = 'feedback error';
-      return false;
+    if (feedback) { // Ensure feedback element exists
+        feedback.textContent = message;
+        feedback.className = className;
     }
-
-    if (target.length > 10) {
-      feedback.textContent = 'Target too long - generation may take very long time';
-      feedback.className = 'feedback warning';
-      // Continue to check for invalid characters, as suggestions might still be useful
-      // if the pattern is both too long AND contains invalid characters.
-    }
-
-    if (!validate_target_string(target)) {
-      // Set main error message in inputFeedback
-      if (!feedback.classList.contains('warning')) { // Don't overwrite "too long" if it's also invalid
-          feedback.textContent = 'Please use valid characters - only: 0-9, a-z (excluding b, i, o)'; // THIS LINE NEEDS TO CHANGE
-          feedback.className = 'feedback error';
-      } else {
-          // It's already a warning (too long), add invalid char info
-          feedback.textContent += ' Contains invalid characters.';
-          // Keep class 'feedback warning error' or similar if desired, for now just error takes precedence if also invalid
-          feedback.className = 'feedback error';
-      }
-
-      const suggestions = this.generateSuggestions(target);
-
-      if (suggestions.length > 0 && this.elements.suggestionArea && this.elements.suggestionList) {
-        // 1. (Already done by clearing suggestionArea.innerHTML)
-
-        // 2. Create and add the "Did you mean:" preamble
-        const preamble = document.createElement('p');
-        preamble.textContent = 'Did you mean:';
-        // preamble.className = 'suggestion-preamble'; // Optional class for styling
-        this.elements.suggestionArea.appendChild(preamble);
-
-        // 3. Clear any old items from the persistent UL element
-        this.elements.suggestionList.innerHTML = '';
-
-        // 4. Populate the UL (this.elements.suggestionList) with new suggestion LIs
-        suggestions.forEach(suggestionText => {
-          const listItem = document.createElement('li');
-          listItem.textContent = suggestionText;
-          listItem.addEventListener('click', () => {
-            this.elements.targetInput.value = suggestionText;
-            // Re-validate, which will clear suggestions and update feedback
-            this.validateInput(suggestionText);
-            this.elements.targetInput.focus();
-          });
-          this.elements.suggestionList.appendChild(listItem);
-        });
-
-        // 5. Append the now-populated UL to the suggestionArea
-        this.elements.suggestionArea.appendChild(this.elements.suggestionList);
-      }
-      return false; // Input is invalid
-    }
-
-    // If it's a warning (e.g. too long) but characters are valid, feedback.textContent is already set.
-    // If we reached here and it's not an error or warning, it's a success.
-    if (!feedback.classList.contains('error') && !feedback.classList.contains('warning')) {
-        feedback.textContent = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
-        feedback.className = 'feedback success';
-    }
-    return true;
+    return canGenerate;
   }
 
   /**
@@ -755,16 +718,8 @@ class VanityGeneratorApp {
    * Show generation success
    */
   showSuccess(keypair) {
-    this.elements.addressTextElement.textContent = keypair.address; // Update address text
-
-    // Handle mnemonic display and visibility
-    this.actualMnemonic = keypair.mnemonic;
-    this.elements.mnemonicTextElement.textContent = '••••••••••••'; // Show placeholder
-    this.isMnemonicVisible = false;
-    if (this.elements.toggleMnemonicVisibilityButton) {
-        this.elements.toggleMnemonicVisibilityButton.textContent = '👁️'; // Reset to "show" icon
-    }
-
+    this.elements.addressValue.textContent = keypair.address;
+    this.elements.mnemonicValue.textContent = keypair.mnemonic;
     this.elements.resultsDiv.style.display = 'block';
     
     // Stop animations
