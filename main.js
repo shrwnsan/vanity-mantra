@@ -353,26 +353,23 @@ class VanityGeneratorApp {
    * Validate user input
    */
   validateInput(target) {
-    if (this.elements.suggestionArea) { // Ensure suggestionArea is available before trying to clear
+    if (this.elements.suggestionArea) {
         this.elements.suggestionArea.innerHTML = ''; // Clear suggestions UI initially
     }
 
-    const feedback = this.elements.inputFeedback; // Use stored reference
+    const feedback = this.elements.inputFeedback;
     let message = '';
-    let className = 'feedback'; // Default state for feedback element
+    let className = 'feedback'; // Default state
     let canGenerate = false;
 
     if (!target) {
-        message = ''; // Or "Please enter a target pattern." if preferred for empty state
+        message = ''; // Deliberate clear for empty input
         className = 'feedback';
         canGenerate = false;
-    } else if (target.length < 1) { // This case is technically covered by !target if target can be ""
-        message = 'Target must be at least 1 character';
+    } else if (!validate_target_string(target)) {
         className = 'feedback error';
         canGenerate = false;
-    } else if (!validate_target_string(target)) {
         message = 'Invalid characters - use only: 0-9, a-z (except "b", "i", "o", "1")';
-        className = 'feedback error';
         if (target.length > 10) {
             message = `Target is too long. Also, it contains invalid characters. Use only: 0-9, a-z (except "b", "i", "o", "1")`;
         }
@@ -389,28 +386,31 @@ class VanityGeneratorApp {
                 listItem.textContent = suggestionText;
                 listItem.addEventListener('click', () => {
                     this.elements.targetInput.value = suggestionText;
-                    this.validateInput(suggestionText); // This will re-validate and clear suggestions
+                    this.validateInput(suggestionText); // Re-validate
                     this.elements.targetInput.focus();
                 });
                 this.elements.suggestionList.appendChild(listItem);
             });
             this.elements.suggestionArea.appendChild(this.elements.suggestionList);
         }
-        canGenerate = false;
-    } else if (target.length > 10) { // Characters are valid, but too long
+    } else if (target.length > 10) { // Valid characters, but too long
         message = `Target is too long (${target.length} chars). Max 10 recommended. Generation may take a very long time.`;
-        // Optionally add: ` (Difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`
         className = 'feedback warning';
-        canGenerate = true; // Allow generation attempt despite warning
-    } else { // Characters are valid, and length is good (1-10)
+        canGenerate = true;
+    } else if (target.length < 1) { // Should ideally not be reached if !target is handled first for empty strings
+        message = 'Target must be at least 1 character';
+        className = 'feedback error';
+        canGenerate = false;
+    } else { // Valid characters, good length (1-10)
         message = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
         className = 'feedback success';
         canGenerate = true;
     }
 
-    if (feedback) { // Ensure feedback element exists
+    if (feedback) {
         feedback.textContent = message;
         feedback.className = className;
+        console.log('Feedback set:', { message, className, targetValue: target }); // Added targetValue for clarity
     }
     return canGenerate;
   }
