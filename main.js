@@ -234,6 +234,8 @@ class ParallelProcessingManager {
 /**
  * Application state management
  */
+const VALID_CHARS = "acdefghjklmnpqrstuvwxyz023456789";
+
 class VanityGeneratorApp {
   constructor() {
     this.isRunning = false;
@@ -253,7 +255,9 @@ class VanityGeneratorApp {
       mnemonicValue: document.getElementById('mnemonicValue'),
       attemptsValue: document.getElementById('attemptsValue'),
       durationValue: document.getElementById('durationValue'),
-      rateValue: document.getElementById('rateValue')
+      rateValue: document.getElementById('rateValue'),
+      suggestionsBlock: document.getElementById('suggestionsBlock'),
+      suggestionButtonsContainer: document.getElementById('suggestionButtonsContainer')
     };
   }
 
@@ -375,6 +379,128 @@ class VanityGeneratorApp {
 
     feedback.textContent = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
     feedback.className = 'feedback success';
+    // Valid input, clear suggestions
+    this.elements.suggestionsBlock.style.display = 'none';
+    this.elements.suggestionButtonsContainer.innerHTML = '';
+    return true;
+  }
+
+  /**
+   * Generate suggestions for an invalid target string
+   */
+  generateSuggestions(target) {
+    const suggestions = new Set();
+    const commonReplacements = ['a', 'c', 'e', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    for (let i = 0; i < target.length; i++) {
+      const char = target[i];
+      if (!VALID_CHARS.includes(char)) {
+        // Suggestion type 1: Removal
+        const removalSuggestion = target.slice(0, i) + target.slice(i + 1);
+        if (removalSuggestion.length > 0) {
+          suggestions.add(removalSuggestion);
+        }
+
+        // Suggestion type 2: Replacement
+        for (const replacement of commonReplacements) {
+          // Avoid replacing with the same character if it happens to be in commonReplacements
+          if (replacement === char) continue;
+          const replacementSuggestion = target.slice(0, i) + replacement + target.slice(i + 1);
+          suggestions.add(replacementSuggestion);
+        }
+      }
+    }
+
+    const validSuggestions = Array.from(suggestions)
+      .filter(sugg => validate_target_string(sugg))
+      .sort((a, b) => {
+        // Sort by number of changes (distance from original), then alphabetically
+        const distA = this.calculateEditDistance(target, a);
+        const distB = this.calculateEditDistance(target, b);
+        if (distA !== distB) {
+          return distA - distB;
+        }
+        return a.localeCompare(b);
+      });
+
+    return validSuggestions.slice(0, 5); // Return up to 5 suggestions
+  }
+
+  /**
+   * Calculate Levenshtein distance (simple version for suggestion sorting)
+   */
+  calculateEditDistance(s1, s2) {
+    let distance = Math.abs(s1.length - s2.length);
+    const minLen = Math.min(s1.length, s2.length);
+    for (let i = 0; i < minLen; i++) {
+      if (s1[i] !== s2[i]) {
+        distance++;
+      }
+    }
+    return distance;
+  }
+
+  /**
+   * Validate user input and show suggestions
+   */
+  validateInput(target) {
+    const feedback = document.getElementById('inputFeedback');
+
+    // Clear previous suggestions initially
+    this.elements.suggestionsBlock.style.display = 'none';
+    this.elements.suggestionButtonsContainer.innerHTML = '';
+
+    if (!target) {
+      feedback.textContent = '';
+      return true;
+    }
+
+    if (target.length < 1) {
+      feedback.textContent = 'Target must be at least 1 character';
+      feedback.className = 'feedback error';
+      return false;
+    }
+
+    if (target.length > 10) {
+      feedback.textContent = 'Target too long - generation may take very long time';
+      feedback.className = 'feedback warning';
+      // Even if too long, we might still offer suggestions for invalid chars
+    }
+
+    if (!validate_target_string(target)) {
+      feedback.textContent = 'Invalid characters - use only: a-z (except "b", "i", "o"), 0-9 (except "1")';
+      feedback.className = 'feedback error';
+
+      const suggestions = this.generateSuggestions(target);
+      if (suggestions.length > 0) {
+        this.elements.suggestionButtonsContainer.innerHTML = ''; // Clear old buttons
+        suggestions.forEach(suggestionString => {
+          const button = document.createElement('button');
+          button.textContent = suggestionString;
+          button.className = 'suggestion-button'; // Add class for styling
+          button.style.marginRight = '5px'; // Basic styling
+          button.style.marginBottom = '5px'; // Basic styling
+          button.style.padding = '0.25rem 0.5rem';
+          button.style.fontSize = '0.8rem';
+          button.style.cursor = 'pointer';
+          button.addEventListener('click', () => {
+            this.elements.targetInput.value = suggestionString;
+            this.validateInput(suggestionString); // Re-validate
+            this.elements.suggestionsBlock.style.display = 'none';
+          });
+          this.elements.suggestionButtonsContainer.appendChild(button);
+        });
+        this.elements.suggestionsBlock.style.display = 'block';
+      } else {
+        this.elements.suggestionsBlock.style.display = 'none';
+      }
+      return false;
+    }
+
+    feedback.textContent = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
+    feedback.className = 'feedback success';
+    this.elements.suggestionsBlock.style.display = 'none'; // Hide if input becomes valid
+    this.elements.suggestionButtonsContainer.innerHTML = '';
     return true;
   }
 
@@ -390,11 +516,22 @@ class VanityGeneratorApp {
     const target = this.elements.targetInput.value.trim().toLowerCase();
     const position = document.querySelector('input[name="position"]:checked').value;
 
-    // Validate input
+    // Validate input. If it's invalid and suggestions are shown,
+    // we don't proceed with generation.
     if (!this.validateInput(target)) {
-      return;
+        // If suggestions are visible, the user needs to pick one or correct the input.
+        if (this.elements.suggestionsBlock.style.display === 'block') {
+            this.showStatus('Please correct the input or select a suggestion.', 'warning');
+        } else {
+            // This case might occur if validateInput returns false for other reasons (e.g. length)
+            // and no suggestions were generated.
+             this.showStatus('Please enter a valid target pattern.', 'error');
+        }
+        return;
     }
 
+    // An additional check for target might be redundant if validateInput covers it,
+    // but ensures target is not empty before generation.
     if (!target) {
       this.showStatus('Please enter a target pattern', 'error');
       return;
