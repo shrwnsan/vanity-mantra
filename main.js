@@ -353,20 +353,23 @@ class VanityGeneratorApp {
    * Validate user input
    */
   validateInput(target) {
-    if (this.elements.suggestionArea) {
-        this.elements.suggestionArea.innerHTML = ''; // Clear suggestions UI initially
-    }
+    console.log('validateInput called with:', target); // Log entry
 
+    if (this.elements.suggestionArea) {
+        this.elements.suggestionArea.innerHTML = ''; // Clear suggestions UI
+    }
     const feedback = this.elements.inputFeedback;
     let message = '';
-    let className = 'feedback'; // Default state
+    let className = 'feedback';
     let canGenerate = false;
 
     if (!target) {
-        message = ''; // Deliberate clear for empty input
+        console.log('Branch: !target (empty or falsy)');
+        message = '';
         className = 'feedback';
         canGenerate = false;
     } else if (!validate_target_string(target)) {
+        console.log('Branch: !validate_target_string (invalid characters)');
         className = 'feedback error';
         canGenerate = false;
         message = 'Invalid characters - use only: 0-9, a-z (except "b", "i", "o", "1")';
@@ -374,45 +377,55 @@ class VanityGeneratorApp {
             message = `Target is too long. Also, it contains invalid characters. Use only: 0-9, a-z (except "b", "i", "o", "1")`;
         }
 
-        const suggestions = this.generateSuggestions(target);
-        if (suggestions.length > 0 && this.elements.suggestionArea && this.elements.suggestionList) {
-            const preamble = document.createElement('p');
-            preamble.textContent = 'Did you mean:';
-            this.elements.suggestionArea.appendChild(preamble);
-
-            this.elements.suggestionList.innerHTML = ''; // Clear old LIs
-            suggestions.forEach(suggestionText => {
-                const listItem = document.createElement('li');
-                listItem.textContent = suggestionText;
-                listItem.addEventListener('click', () => {
-                    this.elements.targetInput.value = suggestionText;
-                    this.validateInput(suggestionText); // Re-validate
-                    this.elements.targetInput.focus();
+        // Suggestion generation logic
+        try {
+            const suggestions = this.generateSuggestions(target);
+            if (suggestions.length > 0 && this.elements.suggestionArea && this.elements.suggestionList) {
+                console.log('Suggestions generated:', suggestions);
+                const preamble = document.createElement('p');
+                preamble.textContent = 'Did you mean:';
+                this.elements.suggestionArea.appendChild(preamble);
+                this.elements.suggestionList.innerHTML = ''; // Clear old LIs
+                suggestions.forEach(suggestionText => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = suggestionText;
+                    listItem.addEventListener('click', () => {
+                        this.elements.targetInput.value = suggestionText;
+                        this.validateInput(suggestionText); // Recursive call
+                        this.elements.targetInput.focus();
+                    });
+                    this.elements.suggestionList.appendChild(listItem);
                 });
-                this.elements.suggestionList.appendChild(listItem);
-            });
-            this.elements.suggestionArea.appendChild(this.elements.suggestionList);
+                this.elements.suggestionArea.appendChild(this.elements.suggestionList);
+            } else {
+                console.log('No suggestions generated for invalid input.');
+            }
+        } catch (e) {
+            console.error('Error during suggestion generation:', e);
         }
-    } else if (target.length > 10) { // Valid characters, but too long
+    } else if (target.length > 10) {
+        console.log('Branch: target.length > 10 (valid chars, too long)');
         message = `Target is too long (${target.length} chars). Max 10 recommended. Generation may take a very long time.`;
         className = 'feedback warning';
         canGenerate = true;
-    } else if (target.length < 1) { // Should ideally not be reached if !target is handled first for empty strings
-        message = 'Target must be at least 1 character';
-        className = 'feedback error';
-        canGenerate = false;
-    } else { // Valid characters, good length (1-10)
+    } else { // This 'else' block is for the success case (valid characters, length 1-10)
+        console.log('Branch: success (valid chars, length 1-10)');
         message = `Valid target pattern (difficulty: ~${Math.pow(32, target.length).toLocaleString()} attempts)`;
         className = 'feedback success';
         canGenerate = true;
     }
 
+    // Ensure feedback DOM element exists before trying to set its properties
     if (feedback) {
         feedback.textContent = message;
         feedback.className = className;
-        console.log('Feedback set:', { message, className, targetValue: target }); // Added targetValue for clarity
+    } else {
+        console.error('Could not find feedback DOM element to update.');
     }
-    return canGenerate;
+
+    console.log('Feedback set (or attempted):', { message, className, targetValue: target, feedbackElementExists: !!feedback });
+
+    return canGenerate; // Single return statement
   }
 
   /**
