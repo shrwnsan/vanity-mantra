@@ -341,7 +341,7 @@ class VanityGeneratorApp {
           this.elements.mnemonicTextElement.textContent = this.actualMnemonic;
           this.elements.toggleMnemonicVisibilityButton.textContent = '🙈'; // "Hide" icon
         } else {
-          this.elements.mnemonicTextElement.textContent = '••••••••••••'; // Placeholder
+          this.elements.mnemonicTextElement.textContent = MNEMONIC_PLACEHOLDER; // Placeholder
           this.elements.toggleMnemonicVisibilityButton.textContent = '👁️'; // "Show" icon
         }
       });
